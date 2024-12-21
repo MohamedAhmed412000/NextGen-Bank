@@ -1,0 +1,4 @@
+-r base.txt
+
+watchfiles==0.22.0
+black==24.8.0
