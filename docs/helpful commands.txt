@@ -1,0 +1,14 @@
+This to generate random token that can be used in urls
+`python -c "import secrets; print(secrets.token_urlsafe(38))"`
+
+This to create the network connection in the docker
+`docker network create {network_name}`
+
+This to list the network connections in the docker
+`docker network ls`
+
+This to check the docker compose file read the environment variables from the file
+`docker compose -f local.yml config`
+
+This to run the docker services
+`docker compose -f local.yml up --build -d --remove-orphans`
