@@ -62,10 +62,28 @@ services:
     networks:
       - banker_local_nw
 
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    privileged: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    ports:
+      - 9445:9443
+      - 8010:8000
+    restart: always
+    networks:
+      - banker_local_nw
+
 volumes:
   banker_local_db:
   banker_mailpit_db:
   logs_store:
+  portainer_data:
 
 networks:
   banker_local_nw:
