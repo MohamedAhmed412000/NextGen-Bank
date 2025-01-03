@@ -38,7 +38,7 @@ class ContentView(TimeStampedModel):
     def __str__(self) -> str:
         return (
             f'{self.content_type} viewed by '
-            f'{self.user.get_full_name() if self.user else 'Anonymous'} '
+            f'{self.user.get_full_name() if self.user else "Anonymous"} '
             f'from IP {self.viewer_ip}'
         )
     
