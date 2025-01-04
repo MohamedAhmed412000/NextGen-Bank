@@ -1,7 +1,11 @@
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
+from rest_framework import serializers
 
 User = get_user_model()
+
+class OTPVerifySerializer(serializers.Serializer):
+    otp = serializers.CharField(required=True)
 
 class UserCreateSerializer(DjoserUserCreateSerializer):
     class Meta(DjoserUserCreateSerializer.Meta):
@@ -11,4 +15,3 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
         
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
-
