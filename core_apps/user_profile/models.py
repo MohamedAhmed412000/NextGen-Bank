@@ -50,7 +50,7 @@ class UserProfile(TimeStampedModel):
     country_of_birth = CountryField(_('Country of Birth'), default=settings.DEFAULT_COUNTRY)
     place_of_birth = models.CharField(_('Place of Birth'), max_length=50, default='Unknown')
     martial_status = models.CharField(_('Martial Status'), max_length=10, choices=MartialStatus.choices, 
-                            default=MartialStatus.UNKNOWN)
+                            default=MartialStatus.UNKNOWN.name)
     identification_type = models.CharField(_('Identification Type'), max_length=16, 
                             choices=IdentificationType.choices, default=IdentificationType.NATIONAL_ID)
     id_issue_date = models.DateField(_('ID or Passport Issue Date'), default=settings.DEFAULT_DATE)

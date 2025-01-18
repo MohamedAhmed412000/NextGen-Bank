@@ -236,6 +236,8 @@ cloudinary.config(
     api_secret=CLOUDINARY_API_SECRET,
 )
 
+USE_X_FORWARDED_HOST = True
+
 COOKIE_NAME = 'access'
 COOKIE_SAMESITE = 'Lax'
 COOKIE_PATH = '/'
