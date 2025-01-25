@@ -1,5 +1,6 @@
 from typing import Any, List
 
+from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -11,6 +12,8 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status, filters, generics, serializers
 
+from core_apps.accounts.utils import create_bank_account
+from core_apps.accounts.models import BankAccount
 from core_apps.common.models import ContentView
 from core_apps.common.permissions import IsBranchManager
 from core_apps.common.renderers import GenericJSONRenderer
@@ -78,12 +81,30 @@ class UserProfileDetailsView(generics.RetrieveUpdateAPIView):
         serializer: UserProfileSerializer = self.get_serializer(instance, data=request.data, partial=partial)
         try:
             serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
+            with transaction.atomic():
+                user_profile: UserProfile = serializer.save()
+                if user_profile.is_complete_with_next_of_kin():
+                    bank_account = BankAccount.objects.filter(
+                        user=user_profile.user, 
+                        account_type=user_profile.account_type, 
+                        account_currency=user_profile.account_currency).first()
+                    if not bank_account:
+                        create_bank_account(user_profile.user, account_type=user_profile.account_type, 
+                                            account_currency=user_profile.account_currency)
+                        message = "User profile updated successfully and a new bank account was created. " + \
+                            "An email has been sent for further instructions."
+                    else:
+                        message = "User profile updated successfully. No new bank account was created. " + \
+                            "As the user already has an existing bank account."
+                    return Response({'message': message, 'data': serializer.data}, status=status.HTTP_200_OK)
+                else:
+                    message = "User profile updated successfully. Please complete the required fields and " + \
+                        "add at least one next of kin to create a new bank account."
+                    return Response({'message': message, 'data': serializer.data}, status=status.HTTP_200_OK)
         except serializers.ValidationError as e:
             return Response({'errors': e.detail}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.data)
     
     def partial_update(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         kwargs['partial'] = True

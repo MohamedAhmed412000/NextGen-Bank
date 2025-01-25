@@ -11,6 +11,7 @@ from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
 
 from core_apps.common.models import ContentView
+from core_apps.accounts.models import BankAccount
 from .models import UserProfile, NextOfKin
 from .tasks import upload_image_to_cloudinary
 
@@ -57,6 +58,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     id_photo_url = serializers.URLField(read_only = True)
     signature_photo_url = serializers.URLField(read_only = True)
     view_count = serializers.SerializerMethodField()
+    account_currency = serializers.ChoiceField(choices = BankAccount.AccountCurrency.choices)
+    account_type = serializers.ChoiceField(choices = BankAccount.BankAccountType.choices)
 
     class Meta:
         model = UserProfile
@@ -67,7 +70,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'nationality', 'phone_number', 'address', 'city', 'country', 'employment_status', 'employer_name',
             'annual_income', 'date_of_employment', 'employer_address', 'employer_city', 'employer_state',
             'next_of_kin', 'created_at', 'updated_at', 'photo', 'photo_url', 'id_photo', 'id_photo_url',
-            'signature_photo','signature_photo_url', 'view_count'
+            'signature_photo','signature_photo_url', 'view_count', 'account_currency', 'account_type'
         )
         read_only_fields = ('user', 'id', 'username', 'email', 'created_at', 'updated_at')
 
