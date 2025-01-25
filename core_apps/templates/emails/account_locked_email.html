@@ -6,7 +6,7 @@
 
 {% block content %}
     <h2>Your account has been locked</h2>
-    <p>Dear {{ user.fullname }}</p>
+    <p>Dear {{ user.fullname }},</p>
     <p>Your account has been locked due to too multiple failed login attempts. For security reasons, you 
         won't be able to log in for the next <b> {{ lockout_duration }}</b> minutes.</p>
     <p>If you didn't attempt to log in, please contact our customer care team immediately</p>
