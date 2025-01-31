@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema
 
 from .emails import send_otp_email
-from .utils import generate_otp
+from core_apps.common.utils import generate_otp
 from .serializers import OTPVerifySerializer
 
 User = get_user_model()

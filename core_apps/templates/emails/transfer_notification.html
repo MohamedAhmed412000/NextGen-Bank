@@ -19,9 +19,9 @@
     <ul>
         <li><strong>Amount:</strong> {{ amount|intcomma }} {{ currency }}</li>
         {% if is_sender %}
-            <li><strong>To:</strong> {{ receiver_name }} (Account: {{ receiver_account }})</li>
+            <li><strong>To:</strong> {{ receiver_name }} (Account: {{ receiver_account_number }})</li>
         {% else %}
-            <li><strong>From:</strong> {{ sender_name }} (Account: {{ sender_account }})</li>
+            <li><strong>From:</strong> {{ sender_name }} (Account: {{ sender_account_number }})</li>
         {% endif %}
         <li><strong>New Balance:</strong> {{ new_balance|intcomma }} {{ currency }} </li>
     </ul>
