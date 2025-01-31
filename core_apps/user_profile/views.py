@@ -9,7 +9,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
-from rest_framework.pagination import PageNumberPagination
 from rest_framework import status, filters, generics, serializers
 
 from core_apps.accounts.utils import create_bank_account
@@ -17,14 +16,10 @@ from core_apps.accounts.models import BankAccount
 from core_apps.common.models import ContentView
 from core_apps.common.permissions import IsBranchManager
 from core_apps.common.renderers import GenericJSONRenderer
+from core_apps.common.pagination import StandardResultsSetPagination
 
 from .models import UserProfile, NextOfKin
 from .serializers import UserProfileSerializer, UserProfileListSerializer, NextOfKinSerializer
-
-class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = 'page_size'
-    max_page_size = 100
 
 class UserProfileListView(generics.ListAPIView):
     serializer_class = UserProfileListSerializer

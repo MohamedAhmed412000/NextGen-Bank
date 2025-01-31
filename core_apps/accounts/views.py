@@ -1,16 +1,22 @@
 from typing import Any
 
-from decimal import Decimal
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status, serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.filters import OrderingFilter
+
 from loguru import logger
+from dateutil import parser
+from decimal import Decimal
 
 from core_apps.common.permissions import IsAccountExecutive, IsTeller
 from core_apps.common.renderers import GenericJSONRenderer
 from core_apps.common.utils import generate_otp
+from core_apps.common.pagination import StandardResultsSetPagination
 
 from .models import BankAccount, Transaction
 from .serializers import BankAccountVerificationSerializer, CustomerInfoSerializer, DepositSerializer, \
@@ -85,6 +91,17 @@ class DepositView(generics.CreateAPIView):
             bank_account.save()
             logger.info(f'Deposit of {amount} made to account {bank_account.account_number} by teller ' + \
                         f'{request.user.email}')
+            
+            Transaction.objects.create(
+                user=bank_account.user,
+                receiver=bank_account.user,
+                receiver_account=bank_account,
+                amount=amount,
+                description=f'Deposit of {amount} to account {bank_account.account_number}',
+                transaction_type=Transaction.TransactionType.DEPOSIT,
+                transaction_status=Transaction.TransactionStatus.SUCCESS
+            )
+
             send_deposite_email(user=bank_account.user, user_email=bank_account.user.email, amount=amount,
                                 currency=bank_account.account_currency, new_balance=bank_account.account_balance,
                                 account_number=bank_account.account_number)
@@ -251,6 +268,7 @@ class VerifyOTPAndTransferView(generics.CreateAPIView):
             return self.process_transfer(request)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @transaction.atomic
     def process_transfer(self, request: Request) -> Response:
         transfer_data = request.session.get('transfer_data', None)
         if not transfer_data:
@@ -302,4 +320,50 @@ class VerifyOTPAndTransferView(generics.CreateAPIView):
             'message': f'Transfer of {amount} completed successfully',
             'transaction': TransactionSerializer(transaction).data
         }, status=status.HTTP_200_OK)
+
+class TransactionListApiView(generics.ListAPIView):
+    serializer_class = TransactionSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    ordering_fields = ['created_at', 'amount']
+    ordering = ['-created_at']
+
+    def get_queryset(self) -> Any:
+        user = self.request.user
+        queryset = Transaction.objects.filter(Q(sender=user) | Q(receiver=user))
+
+        start_date = self.request.query_params.get('start_date', None)
+        end_date = self.request.query_params.get('end_date', None)
+        account_number = self.request.query_params.get('account_number', None)
+
+        if start_date:
+            try:
+                start_date = parser.parse(start_date)
+                queryset = queryset.filter(created_at__gte=start_date)
+            except ValueError:
+                pass
+        if end_date:
+            try:
+                end_date = parser.parse(end_date)
+                queryset = queryset.filter(created_at__lte=end_date)
+            except ValueError:
+                pass
+        if account_number:
+            try:
+                account = BankAccount.objects.get(account_number=account_number, user=user)
+                queryset = queryset.filter(Q(sender_account=account) | Q(receiver_account=account))
+            except BankAccount.DoesNotExist:
+                queryset = Transaction.objects.none()
+
+        return queryset
+    
+    def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        response = super().list(request, *args, **kwargs)
+        account_number = request.query_params.get('account_number', None)
+        if account_number:
+            logger.info(f'User {request.user.email} successfully retrieved transactions from account: {account_number}')
+        else:
+            logger.info(f'User {request.user.email} successfully retrieved transactions from all accounts')
+        return response
+
 

@@ -94,6 +94,8 @@ class TransactionSerializer(serializers.ModelSerializer):
             else None
         representation['receiver_account'] = instance.receiver_account.account_number if instance.receiver_account \
             else None
+        representation['transaction_type'] = instance.get_transaction_type_display()
+        representation['transaction_status'] = instance.get_transaction_status_display()
         return representation
 
     def validate(self, attrs: dict) -> dict:
