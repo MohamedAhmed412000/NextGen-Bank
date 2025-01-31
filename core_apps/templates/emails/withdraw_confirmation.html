@@ -2,16 +2,16 @@
 {% load humanize %}
 
 {% block title %}
-    Deposit Confirmation
+    Withdraw Confirmation
 {% endblock title %}
 
 {% block content %}
-    <h2>Deposit Confirmation</h2>
+    <h2>Withdraw Confirmation</h2>
     <p>Dear {{ user.full_name }},</p>
-    <p>We are pleased to inform you that a deposit has been made to your account.</p>
+    <p>We are pleased to inform you that a withdraw has been made from your account.</p>
     <p>Details of the transaction:</p>
     <ul>
-        <li><strong>Amount:</strong> {{ amount|intcomma }} {{ currency }}</li>
+        <li><strong>Withdrawal Amount:</strong> {{ amount|intcomma }} {{ currency }}</li>
         <li><strong>Account Number:</strong> {{ account_number }}</li>
         <li><strong>New Balance:</strong> {{ new_balance|intcomma }} {{ currency }} </li>
     </ul>
