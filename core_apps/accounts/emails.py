@@ -151,3 +151,23 @@ def send_transfer_otp_email(email, otp):
         logger.info(f'OTP email sent successfully to {email}')
     except Exception as e:
         logger.error(f'Failed to send OTP email to {email}, Error: {e}')
+
+def send_transaction_pdf(user, start_date, end_date, pdf) -> None:
+    subject = _('Your translations history PDF')
+    context = {
+        'user': user,
+        'site_name': settings.SITE_NAME,
+    }
+    html_content = render_to_string('emails/transactions_history_pdf.html', context)
+    text_content = strip_tags(html_content)
+    from_email = settings.DEFAULT_FROM_EMAIL
+    recipient_list = [user.email]
+    email = EmailMultiAlternatives(subject, text_content, from_email, recipient_list)
+    email.attach_alternative(html_content, 'text/html')
+    email.attach(f'transactions_from_{start_date}_to_{end_date}.pdf', pdf, 'application/pdf')
+
+    try:
+        email.send()
+        logger.info(f'Transaction history PDF email sent to {user.email}')
+    except Exception as e:
+        logger.error(f'Failed to send transaction history PDF email to {user.email}, Error: {str(e)}')

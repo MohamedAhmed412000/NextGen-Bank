@@ -1,0 +1,15 @@
+{% extends "emails/base.html" %}
+
+{% block title %}
+    Your Transaction History
+{% endblock title %}
+
+{% block content %}
+    <h2>Your Transaction History</h2>
+    <p>Dear {{ user.full_name }},</p>
+    <p>We hope this email finds you well.</p>
+    <p>We have attached your recent transaction history as a PDF file.</p>
+    <p>Please review and let us know if you need any further assistance.</p>
+    <p>Best Regards,</p>
+    <p><strong>The {{ site_name }} Team</strong></p>
+{% endblock content %}
