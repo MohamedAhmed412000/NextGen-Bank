@@ -390,7 +390,7 @@ class TransactionPDFApiView(APIView):
         except ValueError as e:
             return Response({'error': f'Invalid date format : {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
         
-        generate_transactions_PDF(user.id, start_date, end_date, account_number)
+        generate_transactions_PDF.delay(user.id, start_date, end_date, account_number)
         return Response({
             'message': 'Your transaction history PDF is being generated and will be sent to your email shortly',
             'email': user.email
