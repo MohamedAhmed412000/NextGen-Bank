@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 
-from .models import BankAccount
+from .models import BankAccount, Transaction
 
 User = get_user_model()
 
@@ -51,4 +51,47 @@ class BankAccountAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
+@admin.register(Transaction)
+class TransactionAdmin(admin.ModelAdmin):
+    list_display = ['id', 'sender_full_name', 'receiver_full_name', 'transaction_type', 'description', 'amount', 
+                    'transaction_currency', 'created_at']
+    list_filter = ['transaction_type', 'created_at']
+    search_fields = ['sender_full_name','receiver_full_name']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    fieldsets = (
+        (_('Transaction Details'), {
+            'fields': ('id', 'transaction_type', 'description', 'amount', 'transaction_status')
+        }),
+        (_('Sender Section'), {
+            'fields': ('sender', 'sender_account')
+        }),
+        (_('Receiver Section'), {
+            'fields': ('receiver','receiver_account')
+        }),
+        (_('Timestamps'), {
+            'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)
+        }),
+    )
 
+    def transaction_currency(self, obj):
+        return obj.sender_account.account_currency if obj.sender_account else obj.receiver_account.account_currency
+    
+    transaction_currency.short_description = _('Currency')
+
+    def sender_full_name(self, obj):
+        return obj.sender.full_name if obj.sender else 'N/A'
+    
+    sender_full_name.short_description = _('Sender')
+    sender_full_name.admin_order_field ='sender__first_name'
+
+    def receiver_full_name(self, obj):
+        return obj.receiver.full_name if obj.receiver else 'N/A'
+    
+    receiver_full_name.short_description = _('Receiver')
+    receiver_full_name.admin_order_field ='receiver__first_name'
+
+    def has_delete_permission(self, request, obj = ...):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser

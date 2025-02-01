@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/v1/auth/', include('core_apps.user_auth.urls')),
     path('api/v1/profiles/', include('core_apps.user_profile.urls')),
     path('api/v1/accounts/', include('core_apps.accounts.urls')),
+    path('api/v1/cards/', include('core_apps.cards.urls')),
 ]
 
 admin.site.site_header = 'NextGen Bank Admin'
