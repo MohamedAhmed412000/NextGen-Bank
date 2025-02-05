@@ -5,6 +5,7 @@ from dateutil import parser
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+from django.db import transaction
 from loguru import logger
 
 from reportlab.lib import colors
@@ -97,3 +98,13 @@ def get_account_currency(transaction: Transaction) -> str:
     if transaction.sender_account:
         return transaction.sender_account.get_account_currency_display()
     return transaction.receiver_account.get_account_currency_display()
+
+
+@shared_task
+def apply_daily_interest() -> str:
+    saving_accounts = BankAccount.objects.filter(account_type = BankAccount.BankAccountType.SAVING)
+    for account in saving_accounts:
+        with transaction.atomic():
+            account.apply_daily_interest()
+    logger.info(f'Done applying daily interest to {saving_accounts.count()} accounts')
+    return f'Daily interest applied to {saving_accounts.count()} accounts'

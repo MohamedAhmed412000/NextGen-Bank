@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from decimal import Decimal, ROUND_HALF_UP
+from loguru import logger
 
 from core_apps.common.models import TimeStampedModel
 
@@ -40,10 +42,44 @@ class BankAccount(TimeStampedModel):
     verification_date = models.DateTimeField(_('Verification Date'), null=True, blank=True)
     verification_notes = models.TextField(_('Verification Notes'), null=True, blank=True)
     fully_activated = models.BooleanField(_('Fully Activated'), default=False)
+    interest_rate = models.DecimalField(_('Interest Rate'), max_digits=5, decimal_places=4, default=0.00, 
+                                        help_text='Annual interest rate as a decimal (eg. 0.0150 for 1.50%)')
 
     def __str__(self) -> str:
         return f'{self.user.full_name}\'s {self.get_account_currency_display()} - {self.get_account_type_display()} ' + \
             f'Account - {self.account_number}'
+    
+    @property
+    def annual_interest_rate(self):
+        if self.account_type != BankAccount.BankAccountType.SAVING:
+            return Decimal(0)
+        balance = Decimal(self.account_balance)
+        if balance < Decimal(100000):
+            return Decimal(0.0050)
+        elif Decimal(100000) <= balance < Decimal(500000):
+            return Decimal(0.0100)
+        else:
+            return Decimal(0.0150)
+        
+    def apply_daily_interest(self) -> Decimal:
+        if self.account_type == BankAccount.BankAccountType.SAVING:
+            daily_rate = self.annual_interest_rate / Decimal(365)
+            interest = (daily_rate * Decimal(self.account_balance)).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+            logger.info(f'Applying daily interest {interest} to account {self.account_type}')
+            self.account_balance += interest
+            self.save()
+
+            Transaction.objects.create(
+                user=self.user,
+                amount=interest,
+                transaction_type=Transaction.TransactionType.INTEREST,
+                description=f'Daily interest applied for account {self.account_number}',
+                receiver=self.user,
+                receiver_account=self,
+                transaction_status=Transaction.TransactionStatus.SUCCESS,
+            )
+            return interest
+        return Decimal(0.00)
 
     class Meta:
         verbose_name = _('Bank Account')
@@ -65,6 +101,7 @@ class Transaction(TimeStampedModel):
         DEPOSIT = 'DEPOSIT', _('Deposit')
         WITHDRAW = 'WITHDRAW', _('Withdraw')
         TRANSFER = 'TRANSFER', _('Transfer')
+        INTEREST = 'INTEREST', _('Interest')
 
     class TransactionStatus(models.TextChoices):
         PENDING = 'PENDING', _('Pending')

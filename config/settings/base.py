@@ -226,6 +226,12 @@ CELERY_TASK_TIME_LIMIT = 5 * 60
 CELERY_TASK_SOFT_TIME_LIMIT = 60
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_WORKER_SEND_TASK_EVENTS = True
+CELERY_BEAT_SCHEDULE = {
+    'apply-daily-interest': {
+        'task': 'core_apps.accounts.tasks.apply_daily_interest',
+        # 'schedule': crontab(hour=2, minute=0),
+    }
+}
 
 CLOUDINARY_CLOUD_NAME = getenv('CLOUDINARY_CLOUD_NAME')
 CLOUDINARY_API_KEY = getenv('CLOUDINARY_API_KEY')
