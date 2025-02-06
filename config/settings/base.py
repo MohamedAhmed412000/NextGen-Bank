@@ -229,8 +229,10 @@ CELERY_WORKER_SEND_TASK_EVENTS = True
 CELERY_BEAT_SCHEDULE = {
     'apply-daily-interest': {
         'task': 'core_apps.accounts.tasks.apply_daily_interest',
-        # 'schedule': crontab(hour=2, minute=0),
-    }
+    },
+    'detect-suspicious-activities': {
+        'task': 'core_apps.accounts.tasks.detect_suspicious_activities',
+    },
 }
 
 CLOUDINARY_CLOUD_NAME = getenv('CLOUDINARY_CLOUD_NAME')

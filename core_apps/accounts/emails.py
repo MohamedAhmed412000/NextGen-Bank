@@ -1,3 +1,4 @@
+from typing import List
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -171,3 +172,23 @@ def send_transaction_pdf(user, start_date, end_date, pdf) -> None:
         logger.info(f'Transaction history PDF email sent to {user.email}')
     except Exception as e:
         logger.error(f'Failed to send transaction history PDF email to {user.email}, Error: {str(e)}')
+
+def send_suspicious_activity_alert(suspicious_activities: List[str]) -> int:
+    subject = _('Suspicious Activity Alert')
+    from_email = settings.DEFAULT_FROM_EMAIL
+    recipient_list = [settings.ADMIN_EMAIL]
+    context = {
+        'suspicious_activities': suspicious_activities,
+        'site_name': settings.SITE_NAME,
+    }
+    html_content = render_to_string('emails/suspicious_activity_alert.html', context)
+    text_content = strip_tags(html_content)
+    email = EmailMultiAlternatives(subject, text_content, from_email, recipient_list)
+    email.attach_alternative(html_content, 'text/html')
+    try:
+        email.send()
+        logger.info(f'Suspicious activity alert email sent to {settings.ADMIN_EMAIL}')
+        return len(suspicious_activities)
+    except Exception as e:
+        logger.error(f'Failed to send suspicious activity alert email, Error: {str(e)}')
+        return 0

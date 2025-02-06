@@ -1,12 +1,16 @@
 from io import BytesIO
-
 from celery import shared_task
 from dateutil import parser
+from loguru import logger
+from os import getenv
+from decimal import Decimal
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
-from loguru import logger
+from django.utils import timezone
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, letter
@@ -16,7 +20,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from core_apps.accounts.models import BankAccount, Transaction
 
-from .emails import send_transaction_pdf
+from .emails import send_transaction_pdf, send_suspicious_activity_alert
 
 User = get_user_model()
 
@@ -99,7 +103,6 @@ def get_account_currency(transaction: Transaction) -> str:
         return transaction.sender_account.get_account_currency_display()
     return transaction.receiver_account.get_account_currency_display()
 
-
 @shared_task
 def apply_daily_interest() -> str:
     saving_accounts = BankAccount.objects.filter(account_type = BankAccount.BankAccountType.SAVING)
@@ -108,3 +111,60 @@ def apply_daily_interest() -> str:
             account.apply_daily_interest()
     logger.info(f'Done applying daily interest to {saving_accounts.count()} accounts')
     return f'Daily interest applied to {saving_accounts.count()} accounts'
+
+@shared_task
+def detect_suspicious_activities():
+    LARGE_TRANSACTION_THRESHOLD = Decimal(getenv('LARGE_TRANSACTION_THRESHOLD'))
+    FREQUENT_TRANSACTION_THRESHOLD = int(getenv('FREQUENT_TRANSACTION_THRESHOLD'))
+    TIME_WINDOW_HOURS = int(getenv('TIME_WINDOW_HOURS'))
+
+    TIME_WINDOW = timedelta(hours=TIME_WINDOW_HOURS)
+    now = timezone.now()
+    time_threshold = now - TIME_WINDOW
+
+    suspicies_activities = []
+
+    # Detect large transactions activity
+    large_transactions = Transaction.objects.filter(
+        amount__gte=LARGE_TRANSACTION_THRESHOLD, created_at__gte=time_threshold
+    )
+    for transaction in large_transactions:
+        suspicies_activities.append(
+            f'Large transaction detected: Amount: {transaction.amount}, by user {transaction.user.email}'
+        )
+
+    # Detect frequent transactions activity
+    users = User.objects.all()
+    for user in users:
+        transactions_count = Transaction.objects.filter(user=user, created_at__gte=time_threshold).count()
+        if transactions_count >= FREQUENT_TRANSACTION_THRESHOLD:
+            suspicies_activities.append(
+                f'Frequent transaction detected: {transactions_count}, by user {user.email}'
+            )
+
+    # Detect unusual account balance change
+    accounts = BankAccount.objects.all()
+    for account in accounts:
+        balance_change = Transaction.objects.filter(
+            Q(sender_account=account) | Q(receiver_account=account),
+            created_at__gte=time_threshold
+        ).aggregate(
+            total_sent = Sum('amount', filter=Q(sender_account=account)),
+            total_received = Sum('amount', filter=Q(receiver_account=account))
+        )
+        total_change = (balance_change['total_sent'] or Decimal(0)) - (balance_change['total_received'] or Decimal(0))
+        if abs(total_change) > LARGE_TRANSACTION_THRESHOLD:
+            suspicies_activities.append(
+                f'Large balance change detected: Total change: {total_change}, by account {account.account_number}'
+            )
+
+    if suspicies_activities:
+        num_activities = send_suspicious_activity_alert(suspicies_activities)
+        if num_activities > 0:
+            return f'Suspicious activities check completed. {num_activities} suspicious activities ' + \
+                    'detected and reported'
+        else:
+            return 'Suspicious activities check completed. Activities detected but alert email failed to send'
+    return 'Suspicious activities check completed. No suspicious activities detected'
+
+

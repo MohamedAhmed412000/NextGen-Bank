@@ -1,0 +1,17 @@
+{% extends "emails/base.html" %}
+
+{% block title %}
+    Suspicious Activity
+{% endblock title %}
+
+{% block content %}
+    <h2>Suspicious Activity Alert</h2>
+    <p>The following Suspicious activities have been detected in the {{ site_name }} banking system:</p>
+    <ul>
+        {% for activity in suspicious_activities %}
+            <li>{{ activity }}</li>
+        {% endfor %}
+    </ul>
+    <p>Please review the suspicious activities and take appropriate action if necessary.</p>
+    <p>This is an automated messsage. Do not reply to this email.</p>
+{% endblock content %}
