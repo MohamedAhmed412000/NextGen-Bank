@@ -29,6 +29,7 @@ services:
       - "5432:5432"
     volumes:
       - banker_local_db:/var/lib/postgresql/data
+      - ./backups:/backups
     env_file:
       - ./.envs/.env.local
     networks:

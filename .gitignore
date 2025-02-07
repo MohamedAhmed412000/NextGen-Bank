@@ -4,6 +4,7 @@
 .vscode
 .DS_Store
 staticfiles/
+backups/
 .envs/*
 !.envs/.env.example
 
