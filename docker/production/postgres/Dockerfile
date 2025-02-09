@@ -1,0 +1,10 @@
+FROM docker.io/postgres:16-bullseye
+
+COPY ./docker/production/postgres/maintenance /usr/production/bin/maintenance
+
+RUN chmod +x /usr/production/bin/maintenance/*
+
+RUN mv /usr/production/bin/maintenance/* /usr/production/bin \
+    && rmdir /usr/production/bin/maintenance
+
+RUN mkdir -p /backups && chown -R postgres:postgres /backups && chmod 777 /backups

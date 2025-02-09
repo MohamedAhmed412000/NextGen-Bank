@@ -1,0 +1,128 @@
+services:
+  api: &api
+    build:
+      context: .
+      dockerfile: ./docker/production/django/Dockerfile
+    volumes:
+      - static_volume:/app/staticfiles
+      - app_logs:/app/logs
+    expose:
+      - "8000"
+    env_file:
+      - ./.envs/.env.production
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    command: /start.sh
+    networks:
+      - banker_prod_nw
+  
+  postgres:
+    build:
+      context: .
+      dockerfile: ./docker/production/postgres/Dockerfile
+    ports:
+      - "5432:5432"
+    volumes:
+      - banker_prod_db:/var/lib/postgresql/data
+      - ./backups:/backups
+    env_file:
+      - ./.envs/.env.production
+    networks:
+      - banker_prod_nw
+  
+  redis:
+    image: redis:7.0-alpine3.19
+    command: redis-server --appendonly yes
+    networks:
+      - banker_prod_nw
+  
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+    networks:
+      - banker_prod_nw
+
+  celeryworker:
+    <<: *api
+    command: /start-celeryworker.sh
+    
+  flower:
+    <<: *api
+    ports:
+      - "5555:5555"
+    volumes:
+      - flower_db:/app/flower_db
+    command: /start-flower.sh
+
+  celerybeat:
+    build:
+      context: .
+      dockerfile: ./docker/production/django/Dockerfile
+    command: /start-celerybeat.sh
+    volume:
+    - static_volume:/app/staticfiles
+    - app_logs:/app/logs
+    env_file:
+      - ./.envs/.env.production
+    depends_on:
+      - redis
+      - postgres
+      - rabbitmq
+    networks:
+      - banker_prod_nw
+
+  nginx:
+    build:
+      context: ./docker/production/nginx
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/production/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - static_volume:/app/staticfiles
+      - logs_store:/var/log/nginx
+    depends_on:
+      - api
+    networks:
+      - banker_prod_nw
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    privileged: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    ports:
+      - 9445:9443
+      - 8010:8000
+    restart: always
+    networks:
+      - banker_prod_nw
+
+volumes:
+  banker_prod_db:
+  static_volume:
+  app_logs:
+  logs_store:
+  portainer_data:
+  rabbitmq_data:
+  rabbitmq_logs:
+  flower_db:
+
+networks:
+  banker_prod_nw:
+    external: true
