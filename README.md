@@ -35,7 +35,7 @@ or if you have [makefile](https://opensource.com/article/18/8/what-how-makefile)
 
 ## Environment Variables
 
-To run this project, you will need to add the following environment variables to your .env file
+To run this project, you will need to add the following environment variables to your .env.local file in the .envs directory
 
 | Key       | Type     | Description                        |
 | :-------- | :------- | :--------------------------------- |
