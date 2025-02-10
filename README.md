@@ -98,5 +98,5 @@ To run this project, you will need to add the following environment variables to
 
 ## Tech Stack
 
-**Server:** Djanog, DRF, Celery, Docker
+**Server:** Djanog, DRF, Celery, Docker, Nginx
 
